@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Prediction App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            display: none;
+            animation: slideIn 0.3s ease-in;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result-text {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .result-value {
+            font-size: 24px;
+            color: #667eea;
+            margin-top: 10px;
+            text-transform: capitalize;
+        }
+        
+        .error {
+            background: #ffe6e6;
+            border-left-color: #e74c3c;
+            color: #c0392b;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ Weather Prediction</h1>
+        
+        <form id="predictionForm">
+            <div class="form-group">
+                <label for="date">Date (YYYY-MM-DD)</label>
+                <input type="date" id="date" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="precipitation">Precipitation (mm)</label>
+                <input type="number" id="precipitation" step="0.01" min="0" placeholder="Enter precipitation" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="temp_max">Max Temperature (°C)</label>
+                <input type="number" id="temp_max" step="0.1" placeholder="Enter max temperature" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="temp_min">Min Temperature (°C)</label>
+                <input type="number" id="temp_min" step="0.1" placeholder="Enter min temperature" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="wind">Wind Speed (km/h)</label>
+                <input type="number" id="wind" step="0.1" min="0" placeholder="Enter wind speed" required>
+            </div>
+            
+            <button type="submit">Predict Weather</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Predicting weather...</p>
+        </div>
+        
+        <div class="result" id="result">
+            <div class="result-text">Predicted Weather</div>
+            <div class="result-value" id="resultValue"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            loading.classList.add('show');
+            result.classList.remove('show');
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        date: document.getElementById('date').value,
+                        precipitation: document.getElementById('precipitation').value,
+                        temp_max: document.getElementById('temp_max').value,
+                        temp_min: document.getElementById('temp_min').value,
+                        wind: document.getElementById('wind').value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                loading.classList.remove('show');
+                
+                if (response.ok) {
+                    document.getElementById('resultValue').textContent = data.weather;
+                    result.classList.add('show');
+                    result.classList.remove('error');
+                } else {
+                    result.textContent = 'Error: ' + (data.error || 'Unknown error');
+                    result.classList.add('show', 'error');
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.textContent = 'Error: ' + error.message;
+                result.classList.add('show', 'error');
+            }
+        });
+        
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+    </script>
+</body>
+</html>
